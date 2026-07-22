@@ -1,0 +1,66 @@
+MERIDIAN ABS FUNDING 2024-1
+QUARTERLY SERVICING AND SURVEILLANCE REPORT
+Reporting Period: 1 April 2026 to 30 June 2026
+Report Date: 15 July 2026
+
+1. TRANSACTION OVERVIEW
+
+Meridian ABS Funding 2024-1 is a securitization of small-ticket commercial equipment loans originated by Meridian Capital Partners Ltd. The transaction closed on 12 March 2024 with an initial pool balance of USD 412.5 million across 3,847 loan contracts. The notes were issued in four classes: Class A (USD 320.0 million), Class B (USD 45.0 million), Class C (USD 27.5 million), and an unrated equity tranche of USD 20.0 million retained by the originator.
+
+The Class A notes carry a fixed coupon of 5.85 percent per annum. The Class B notes pay a floating rate of one-month SOFR plus a margin of 240 basis points, and the Class C notes pay one-month SOFR plus 410 basis points. Interest on all classes is payable monthly in arrears on the 20th calendar day of each month, or the next business day if the 20th falls on a weekend or holiday.
+
+Meridian Capital Partners Ltd acts as servicer of the pool. U.S. National Trust Company acts as indenture trustee and Sterling Backup Services LLC acts as backup servicer. The backup servicer conducts a quarterly shadow reconciliation of the servicer's remittance data and is obligated to assume primary servicing within 30 days of a servicer termination event.
+
+2. POOL COMPOSITION AND COLLATERAL CHARACTERISTICS
+
+As of the June 2026 determination date, the outstanding pool balance was USD 264.8 million across 2,691 active contracts, representing a pool factor of 0.642. The weighted average remaining term of the pool is 31.4 months and the weighted average seasoning is 27.8 months. The weighted average contract yield is 9.42 percent.
+
+The pool remains diversified across equipment types. Construction equipment represents 28.3 percent of the current balance, transportation and logistics equipment 24.1 percent, medical and dental equipment 19.6 percent, manufacturing machinery 15.7 percent, and technology and office equipment 12.3 percent. No single obligor accounts for more than 0.84 percent of the pool balance, and the top ten obligors together represent 6.9 percent.
+
+Geographic concentration limits remain satisfied. The largest state exposures are Texas at 14.2 percent, California at 12.8 percent, and Florida at 9.1 percent. The transaction documents cap any single state at 20 percent of the pool balance measured at each determination date.
+
+Eligible collateral under the transaction documents excludes any contract that is more than 30 days delinquent at the time of measurement, any contract with a remaining term exceeding 72 months, and any receivable owed by an obligor subject to active bankruptcy proceedings. During the reporting period, 14 contracts with an aggregate balance of USD 1.9 million were removed from the eligible pool for breaching these criteria.
+
+3. DELINQUENCY AND DEFAULT PERFORMANCE
+
+Delinquency performance deteriorated modestly during the quarter. Contracts 31 to 60 days past due rose to 2.31 percent of the pool balance, compared with 1.94 percent at the end of the prior quarter. Contracts 61 to 90 days past due stood at 0.88 percent, and contracts more than 90 days past due, which are classified as defaulted under the transaction documents, reached 1.12 percent.
+
+The cumulative net loss ratio since closing is 1.87 percent of the initial pool balance, which remains below the base-case expectation of 2.60 percent for this point in the transaction's life. Gross defaults during the quarter totaled USD 3.4 million, against which the servicer realized recoveries of USD 1.1 million, primarily through equipment repossession and remarketing. The average recovery lag from default to final liquidation proceeds was 4.7 months during the period, compared with 4.2 months in the prior quarter. The servicer attributes the longer lag to softer used-equipment auction values in the construction segment.
+
+Twenty-two contracts were modified during the quarter under the servicer's hardship program, of which nineteen involved temporary payment deferrals of up to three months and three involved term extensions. Modified contracts represent 1.4 percent of the pool balance in aggregate. Under the transaction documents, modified contracts are treated as delinquent for trigger measurement purposes until six consecutive contractual payments have been made following the modification.
+
+4. CREDIT ENHANCEMENT AND TRIGGERS
+
+Credit enhancement for the Class A notes consists of subordination of the Class B and Class C notes and the equity tranche, a non-amortizing cash reserve account, and excess spread. The reserve account is funded at its required level of USD 6.2 million, equal to 1.5 percent of the initial pool balance, and no draws have been made on the reserve since closing.
+
+The transaction includes two principal performance triggers measured monthly. The delinquency trigger is breached if the three-month rolling average of contracts more than 60 days past due exceeds 4.00 percent of the pool balance. The cumulative net loss trigger is breached if the cumulative net loss ratio exceeds the scheduled threshold, which is 3.25 percent for determination dates falling in 2026. As of the June determination date, the three-month rolling average of 60-plus delinquencies was 1.93 percent and both triggers remain in compliance.
+
+A breach of either performance trigger converts the payment waterfall from pro-rata to fully sequential, directing all available principal collections to the Class A notes until the breach is cured or the notes are repaid. In addition, a delinquency trigger breach suspends any release of excess spread to the equity tranche.
+
+5. PAYMENT WATERFALL AND DISTRIBUTIONS
+
+On each monthly payment date, available collections are applied in the following order of priority. First, to the payment of servicing fees, which accrue at 1.00 percent per annum on the outstanding pool balance, and trustee and administrative expenses subject to an annual cap of USD 350,000. Second, to interest on the Class A notes. Third, to interest on the Class B notes. Fourth, to interest on the Class C notes. Fifth, to replenishment of the reserve account to its required level. Sixth, to principal distributions in accordance with the applicable amortization mode. Seventh, any remaining amounts constitute excess spread and are released to the equity tranche, subject to the trigger provisions described in Section 4.
+
+During the reporting period the transaction remained in pro-rata amortization mode. Total collections for the quarter were USD 31.7 million, of which USD 24.9 million represented principal collections and USD 6.8 million represented interest and fee income. The Class A note balance amortized to USD 198.4 million, the Class B balance to USD 34.2 million, and the Class C balance to USD 22.1 million as of the June payment date.
+
+Excess spread released to the equity tranche during the quarter totaled USD 1.6 million. Annualized excess spread for the period was 2.41 percent of the average pool balance, compared with 2.58 percent in the prior quarter, with the decline driven primarily by the higher cost of the floating-rate classes.
+
+6. INTEREST RATE EXPOSURE AND HEDGING
+
+The transaction carries a structural mismatch between the fixed-rate collateral, which yields a weighted average 9.42 percent, and the floating-rate Class B and Class C notes. To hedge this exposure, the issuer entered into an interest rate cap at closing with Northgate Derivatives LLC as cap counterparty. The cap has a strike of 5.50 percent on one-month SOFR, a notional balance that amortizes in line with the scheduled combined balance of the Class B and Class C notes, and a final maturity of March 2029.
+
+One-month SOFR averaged 4.12 percent during the reporting period, and accordingly no payments were received under the cap. The cap counterparty is required to maintain a minimum rating of A3 by at least one nationally recognized rating agency; a downgrade below that level obliges the counterparty to post collateral or transfer the cap to a replacement counterparty within 60 days. Northgate Derivatives LLC currently satisfies the rating requirement.
+
+7. SERVICER COMMENTARY
+
+The servicer notes that origination-vintage performance continues to diverge. Contracts originated in the second half of 2023 are exhibiting cumulative losses roughly 40 basis points above earlier vintages at equivalent seasoning, concentrated in construction equipment obligors in the Southwest region. The servicer tightened underwriting criteria for construction-sector obligors in January 2026, including a reduction of maximum advance rates from 90 percent to 85 percent of equipment cost and a minimum time-in-business requirement of four years.
+
+Collections operations were affected in April by the migration of the servicing platform to a new loan management system. The migration caused a two-week delay in the posting of approximately 6 percent of obligor payments, which temporarily inflated early-stage delinquency figures reported for April. All misposted payments were reconciled by 15 May, and the servicer confirms that no obligor was assessed late fees as a result of the migration. The June delinquency figures reported in Section 3 are unaffected by the migration issue.
+
+The backup servicer completed its quarterly shadow reconciliation on 30 June and reported no material discrepancies between its records and the servicer's remittance data.
+
+8. DEFINITIONS AND NOTES
+
+Pool factor means the current pool balance divided by the initial pool balance. Cumulative net loss ratio means cumulative gross defaults less cumulative recoveries, divided by the initial pool balance. A contract is classified as defaulted on the earlier of the date it becomes more than 90 days past due and the date the servicer determines the contract to be uncollectible. Determination date means the last business day of each calendar month. All percentages in this report are calculated on the basis of the pool balance as of the relevant determination date unless otherwise stated.
+
+This report is provided for the information of noteholders pursuant to Section 8.02 of the indenture and does not constitute an offer of securities. Figures are unaudited.
