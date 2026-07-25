@@ -369,6 +369,30 @@
 - Silent no-ops can look identical to true passes; proving branch execution is part of verification.
 - This matches earlier patterns in the project where outputs looked plausible while core work was skipped (empty-context refusal behavior, weak/placeholder embedding behavior).
 
+### Week 2 Day 3: Hybrid Retrieval Harness
+
+#### Work Done
+- Refactored week-2/day3.ts from single-mode probing to a comparative retrieval harness.
+- Added keyword retrieval (`keywordSearch`) using PostgreSQL full-text ranking with `websearch_to_tsquery('english', ...)`.
+- Added Reciprocal Rank Fusion (`rrf`) and `hybridSearch` combining vector + keyword candidates.
+- Expanded probes into `ALL_QUERIES` and printouts now compare `vector`, `keyword`, and `hybrid` top-3 results per query.
+- Standardized compact side-by-side preview snippets using `slice(0, 85)` for readability across all three modes.
+
+#### Errors Encountered
+- None.
+
+#### Remedy Applied
+- Implemented rank-fusion scoring with RRF (`1 / (k + rank + 1)`) to reduce single-retriever miss cases.
+- Implemented deep candidate pull + fusion + trim flow (`10 -> fuse -> top 3`) in `hybridSearch`.
+- Switched output formatting to emphasize retrieval comparison over long single-snippet previews.
+
+#### Verification
+- week-2/day3.ts diagnostics are clean.
+- Workspace compile check passed: `npx tsc --noEmit`.
+
+#### Retrospective
+- Implemented hybrid retrieval (pgvector + Postgres FTS, fused with RRF). Result: no improvement over vector-only on any of 9 queries; slightly worse on 2. Three failure modes hit along the way: (1) plainto_tsquery AND-semantics returned zero hits on 4/9 natural-language questions; (2) websearch_to_tsquery didn't help — it adds operator syntax, not OR defaults; (3) hand-built OR queries restored recall but had no term-importance weighting, so common terms ("rating") matched as strongly as rare discriminating ones ("northgate"), injecting noise that RRF propagated into hybrid results. Root causes: 17-chunk corpus where vector search retrieves ~18% of the corpus per query (hard to miss), and Postgres FTS lacking proper IDF. Conclusion: hybrid search is query engineering plus a real BM25 engine, not a bolt-on. Would revisit at 10k+ chunks with OpenSearch.
+
 ### Week 2 Day 2: Pre-Move Cleanup (Fault Mode + Logging)
 
 #### Work Done
