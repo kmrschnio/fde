@@ -56,7 +56,7 @@ Rules:
 - No markdown fences, no prose outside the JSON.`;
 
 // THE VERIFIER — this is the day's real deliverable
-function verifyCitations(
+export function verifyCitations(
   citations: Array<{chunk_id: number; quote: string}>,
   chunks: Array<{id: number; content: string}>,
 ): { valid: boolean; failures: string[] } {
@@ -118,7 +118,7 @@ function parseCitedAnswer(raw: string): CitedAnswer {
   return parsed.data;
 }
 
-async function generateCitedAnswer(
+export async function generateCitedAnswer(
   question: string,
   chunks: RetrievedChunk[],
 ): Promise<{ result: CitedAnswer; raw: string }> {

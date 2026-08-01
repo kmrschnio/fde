@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Client } from 'pg';
 import { search } from '../week-1/day6.js';
+import { pathToFileURL } from 'node:url';
 
 type Row = { id: number; section: string | null; content: string; score?: number };
 
@@ -66,7 +67,7 @@ const PROBES = [
   "Which state has the largest exposure?",
 ];
 
-const ALL_QUERIES = [
+export const ALL_QUERIES = [
   ...PROBES,
   'What coupon do the Class A notes pay?',
   'What happens if the delinquency trigger is breached?',
@@ -97,4 +98,14 @@ async function main() {
     }
   await db.end();
 }
-main().catch(console.error);
+
+const isDirectRun =
+  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('week2 day3 failed:', message);
+    process.exitCode = 1;
+  });
+}

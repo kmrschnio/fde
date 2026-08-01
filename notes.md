@@ -410,3 +410,21 @@
 - This is useful for development throughput and debugging because it preserves output while surfacing verifier failures.
 - For production-grade safety, fail-closed is preferable at retry exhaustion: if verification remains invalid, return an explicit error/failure result instead of answer text.
 - Recommended next hardening step: switch terminal retry behavior to fail-closed and emit machine-readable failure metadata.
+
+## 2026-08-01
+
+### Week 2 Day 5: Rerank Floor + Min-K Evidence and Latency Budget
+
+#### Work Done
+- One thing to notice and fix, though — the waterfall answer succeeded almost by luck. Its selected chunks were [10], [11], [2], and the actual waterfall enumeration lives in [11], which scored **0.49 — below your 0.5 floor**. It only made it into context because your min-k=3 fallback rescued it. Had you used a pure floor with no min-k, this question would have answered from [10] alone (the *trigger* chunk, not the *waterfall* chunk) and been wrong. **Your Day 4 policy decision — "floor, but never fewer than k" — is what saved this question.** That's not a hypothetical benefit anymore; you can point to the exact query where the naive version would have failed. Put that in `notes.md` verbatim; it's a concrete defense of a design choice, which is rare and valuable.
+- Added direct-run guards to week-2/day3.ts and week-2/day4.ts so importing rerank in day5 no longer executes Day 3/Day 4 harness output.
+
+#### Errors Encountered
+- Pipeline output pollution from import side effects: Day 3/Day 4 harness `main()` functions were executing during Day 5 runs.
+
+#### Remedy Applied
+- Wrapped `main()` calls in day3/day4 with `isDirectRun` (`import.meta.url` vs `pathToFileURL(process.argv[1]).href`) guards.
+
+#### Latency Budget
+- end-to-end ~1-2s per query, dominated by generation; rerank adds ~350ms.
+- Future optimization: stream generation so the user sees the answer forming rather than waiting for the full pipeline.
