@@ -428,3 +428,252 @@
 #### Latency Budget
 - end-to-end ~1-2s per query, dominated by generation; rerank adds ~350ms.
 - Future optimization: stream generation so the user sees the answer forming rather than waiting for the full pipeline.
+
+### Project1 LoanDoc: lib/rag.ts Completion
+
+#### Work Done
+- Rebuilt `project1-loandoc/lib/rag.ts` into a complete, type-safe RAG module.
+- Added missing imports and core wiring:
+  - `Anthropic` client initialization
+  - `Client` typing for Postgres query functions
+- Implemented missing interfaces and exports:
+  - `ChunkRow`, `RetrievedChunk`, `Citation`, `CitedAnswer`, `AnswerResult`
+  - `answerQuestion(...)` export for end-to-end retrieval + rerank + cited generation
+- Implemented missing helper functions:
+  - `extractText`, `extractJsonPayload`, `parseCitedAnswer`
+  - runtime shape guards (`isCitation`, `isCitedAnswer`)
+  - `getFaultMode`, `getVoyageApiKey`
+- Implemented retrieval/ranking policy constants and flow in-module:
+  - `FLOOR`, `MIN_K`, `CANDIDATES`
+  - floor-with-min-k selection policy in `retrieveAndRank(...)`
+- Kept and typed Voyage integrations:
+  - `embed(...)` with retry/backoff for 429
+  - `search(...)` using pgvector cosine distance
+  - `rerank(...)` using Voyage rerank endpoint
+
+#### Errors Encountered
+- File had unresolved symbols across the board (missing types, constants, imports, and helper functions), producing compile errors on nearly every section.
+
+#### Remedy Applied
+- Replaced partial file body with a self-contained implementation and strict TypeScript interfaces.
+- Added explicit runtime validation for model JSON output to avoid silent schema drift.
+
+#### Verification
+- File diagnostics: no errors in `project1-loandoc/lib/rag.ts`.
+- Project type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+
+### Project1 LoanDoc: DB Access Refactor in rag.ts
+
+#### Work Done
+- Updated `project1-loandoc/lib/rag.ts` to use shared DB access from `project1-loandoc/lib/db.ts` instead of passing a pg client/pool through function arguments.
+- Refactored function signatures:
+  - `retrieveAndRank(pool, question)` -> `retrieveAndRank(question)`
+  - `answer(pool, question)` -> `answer(question)`
+  - `search(pool, question, k)` -> `search(question, k)`
+- Added `import { pool } from './db'` and removed the `Client` type dependency from `rag.ts`.
+
+#### Errors Encountered
+- None during the refactor.
+
+#### Remedy Applied
+- Centralized SQL query execution to the shared module-level `pool` from `db.ts`.
+
+#### Verification
+- File diagnostics: no errors in `project1-loandoc/lib/rag.ts`.
+- Project type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+
+### Project1 LoanDoc: Upload Route Error Fix + Missing Module Implementation
+
+#### Work Done
+- Fixed `project1-loandoc/app/api/upload/route.ts` and implemented all missing dependencies.
+- Replaced invalid default import from `pdf-parse` with named `PDFParse` class usage.
+- Added full PDF text extraction flow using `PDFParse({ data: buf })`, `getText()`, and `destroy()` cleanup.
+- Added missing modules used by upload route:
+  - `project1-loandoc/lib/pdf.ts` with `cleanPdfText(...)`
+  - `project1-loandoc/lib/chunk.ts` with `Chunk` interface and `chunkStructure(...)`
+  - `project1-loandoc/lib/embed.ts` with `embed(...)` and Voyage retry/backoff handling
+- Added vector existence guard before DB insert to prevent undefined embedding writes.
+
+#### Errors Encountered
+- Route had missing module imports (`@/lib/pdf`, `@/lib/chunk`, `@/lib/embed`).
+- `pdf-parse` import shape mismatch (`no default export`).
+
+#### Remedy Applied
+- Created missing library modules and wired route to typed helpers.
+- Switched to `PDFParse` API compatible with installed `pdf-parse` version.
+
+#### Verification
+- Project type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+
+### Project1 LoanDoc: pdf.js Worker Resolution Fix
+
+#### Work Done
+- Fixed runtime error in `project1-loandoc/app/api/upload/route.ts`:
+  - `Setting up fake worker failed: Cannot find module ... pdf.worker.mjs`
+- Added explicit worker path wiring for `pdf-parse`:
+  - imported `node:path`
+  - set `PDF_WORKER_PATH` to `node_modules/pdf-parse/dist/pdf-parse/esm/pdf.worker.mjs`
+  - called `PDFParse.setWorker(PDF_WORKER_PATH)` at module load.
+
+#### Root Cause
+- In Next.js dev server bundling, `pdfjs-dist` fake worker fallback tried to import worker from `.next/dev/server/chunks/...`, which does not exist for this package path.
+
+#### Verification
+- Type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+- Runtime upload test passed:
+  - `curl -X POST http://localhost:3000/api/upload -F "file=@test-pdfs/atlas_termsheet.pdf"`
+  - response: `{"document_id":2,"chunks":2}`.
+
+### Project1 LoanDoc: /api/ask Empty-Documents Rerank Failure Fix
+
+#### Work Done
+- Fixed runtime error where Voyage rerank failed with 400 when `documents` was empty.
+- Updated `project1-loandoc/lib/rag.ts` to guard no-result retrieval before rerank.
+
+#### Root Cause
+- `search(question, documentId, k)` can return zero chunks for a valid question when the provided `documentId` has no indexed rows (for example, using an older ID).
+- The pipeline still called `rerank(...)` with `documents: []`, and Voyage rejects empty lists.
+
+#### Remedy Applied
+- In `retrieveAndRank(...)`:
+  - early return `{ selected: [], confidence: 0 }` when no candidates.
+  - cap rerank `top_k` to `Math.min(CANDIDATES, candidates.length)`.
+- In `answer(...)`:
+  - return a safe no-context response when `selected.length === 0`.
+- In `rerank(...)`:
+  - return `[]` immediately for `docs.length === 0` as an extra guard.
+
+#### Verification
+- Type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+- Reproduced previous failing request and confirmed graceful result:
+  - `curl -X POST http://localhost:3000/api/ask -H 'Content-Type: application/json' -d '{"question":"What coupon do the Class A notes pay?","documentId":1}'`
+  - returns `sufficient_context=false` with no crash.
+
+### Project1 LoanDoc: Atlas Table Flattening + Cleaning Inspection + Hard PDF Stress Tests
+
+#### Nuanced Finding (Requested)
+- In the Atlas PDF, that was a two-column key-value table cell: `Class A Notes | USD 420,000,000 — 5.95% fixed — Rated AAA`. Extraction flattened it into a single line and it still answered correctly. This confirms a nuanced point: not all table mangling is equally bad; key-value tables often survive flattening better than multi-column data tables.
+
+#### Confidence Signal Observation
+- Atlas `/api/ask` for coupon on `documentId=2` returned:
+  - answer: `5.95% fixed`
+  - confidence: `0.68359375` (~0.684)
+  - citation: flattened row text
+- Compared with earlier clean Meridian `.txt` run (~0.898 for same style query), this lower score suggests retrieval quality degraded while still remaining sufficient for a correct answer. Confidence appears to track context quality, not just correctness.
+
+#### cleanPdfText Before/After (Atlas)
+- Inspection command run with `pdf-parse` + `cleanPdfText` on `test-pdfs/atlas_termsheet.pdf`.
+- Lengths:
+  - raw: `952`
+  - cleaned: `950`
+- Key observed effect:
+  - Minimal transformation on this easy single-page file; extracted key-value rows were already mostly readable.
+  - The key line survived in both forms:
+    - `Class A Notes USD 420,000,000 — 5.95% fixed — Rated AAA`
+  - Cleaning mostly normalized whitespace/newline noise rather than repairing structural table layout.
+
+#### Hard PDF Stress Tests
+- `meridian_report.pdf` uploaded as `document_id=3`.
+  - question: `What is the delinquency trigger?`
+  - response: `three-month rolling average >60 DPD exceeds 4.00%`
+  - confidence: `0.76171875`
+  - sufficient_context: `true`
+  - verified: `false`
+- `horizon_prospectus.pdf` uploaded as `document_id=4`.
+  - question: `What is the servicing fee?`
+  - response: `1.25% per annum`
+  - confidence: `0.7421875`
+  - sufficient_context: `true`
+  - verified: `false`
+
+#### Interpretation
+- Atlas behaved as the easy case: flattened key-value rows remained parseable.
+- Meridian/Horizon answered correctly for targeted questions, but `verified=false` indicates citation exact-match fragility under noisier extraction (likely line-break/hyphenation/format artifacts), even when semantic answering succeeds.
+
+### Project1 LoanDoc: rag.ts Function Reordering
+
+#### Work Done
+- Rearranged all functions in `project1-loandoc/lib/rag.ts` for a clearer top-down flow without changing behavior.
+- New structure groups functions as:
+  - config/constants and types
+  - core helpers and parsers
+  - provider calls (`embed`, `rerank`, `search`)
+  - retrieval pipeline (`retrieveAndRank`)
+  - citation + generation (`verifyCitations`, `generateCitedAnswer`)
+  - public answer API (`answer`)
+
+#### Errors Encountered
+- None.
+
+#### Verification
+- File diagnostics: no errors in `project1-loandoc/lib/rag.ts`.
+- Project type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+
+### Project1 LoanDoc: app/page.tsx Missing Components + Interface Completion
+
+#### Work Done
+- Fixed missing symbol errors in `project1-loandoc/app/page.tsx` by implementing:
+  - `DocumentPane`
+  - `AnswerPane`
+- Added explicit prop interfaces:
+  - `DocumentPaneProps`
+  - `AnswerPaneProps`
+- Improved typed ask flow:
+  - added local `error` state
+  - handled non-OK API responses with message extraction
+  - preserved loading lifecycle with `try/catch/finally`
+- Wired citation interactions:
+  - answer-side citation buttons call `onCite(chunk_id)`
+  - document pane highlights selected citation chunk and shows quote text.
+
+#### Errors Encountered
+- Compile errors from undefined components:
+  - `Cannot find name 'DocumentPane'`
+  - `Cannot find name 'AnswerPane'`
+
+#### Remedy Applied
+- Implemented both components in-file and passed all required props from `Home`.
+
+#### Verification
+- File diagnostics: no errors in `project1-loandoc/app/page.tsx`.
+- Project type-check passed: `cd project1-loandoc && npx tsc --noEmit`.
+
+### Project1 LoanDoc: Full Document Context + Upload-Driven Workbench
+
+#### Work Done
+- Replaced citation-only left-pane rendering with persistent full-document context.
+- Added `GET /api/documents/[documentId]`, returning document metadata and all chunks in ID order.
+- Updated `DocumentPane` to fetch and render every indexed chunk as flowing text.
+- Added citation navigation behavior:
+  - chunk refs are stored by ID
+  - clicking a source scrolls its chunk into view with smooth, centered scrolling
+  - only the matching chunk receives highlighted background and left border styling.
+- Removed hardcoded document selection from the client experience.
+- Added upload-first flow:
+  - click or drag-drop a PDF
+  - processing state while upload/indexing runs
+  - ready state displays selected filename and chunk count.
+- Redesigned interaction chrome:
+  - sentence-case headings with lighter weight
+  - answer text uses a serif voice while interface chrome remains sans
+  - confidence and verified state render as compact chips
+  - insufficient-context response is an empty state, not raw metadata
+  - low-confidence result includes amber source-verification note
+  - updated page metadata to LoanDoc.
+
+#### Errors Encountered
+- Initial AnswerPane styling patch introduced malformed JSX and blocked the dev server.
+
+#### Remedy Applied
+- Replaced the malformed component body with clean JSX and reran the same type-check/runtime checks before proceeding.
+
+#### Verification
+- `npx tsc --noEmit` passes in `project1-loandoc`.
+- Live document endpoint returned full chunk list for Meridian:
+  - `GET /api/documents/3` -> `meridian_report.pdf`, `2` indexed chunks.
+- Browser test completed:
+  - uploaded `atlas_termsheet.pdf`
+  - full extracted document text rendered in left pane
+  - asked `What coupon do the Class A notes pay?`
+  - received `5.95%` answer with confidence chip and verified chip
+  - clicked cited source and confirmed exactly one source chunk was highlighted in place.

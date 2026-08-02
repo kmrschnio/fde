@@ -1,0 +1,27 @@
+export type Citation = {
+  chunk_id: number;
+  quote: string;
+  supports: string;
+};
+
+export type Answer = {
+  answer: string;
+  citations: Citation[];
+  verified: boolean;
+  confidence: number;
+  lowConfidence: boolean;
+  sufficient_context: boolean;
+};
+
+export type DocumentChunk = {
+  id: number;
+  section: string | null;
+  content: string;
+};
+
+export type DocumentRecord = {
+  id: number;
+  filename: string;
+  status: string;
+  chunk_count: number;
+};
