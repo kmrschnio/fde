@@ -717,3 +717,39 @@
 #### Verification
 - Applied `schema.sql` idempotently against configured Postgres using the application `DATABASE_URL`.
 - Result: `schema.sql applied successfully`.
+
+### Project1 LoanDoc: Railway Deployment Readiness Check
+
+#### Findings
+- Production build passed successfully with `npm run build`.
+- `next start` is Railway-compatible: it binds to `PORT` automatically and defaults to host `0.0.0.0`.
+- The repository root contains a different Week 1 `package.json` with no LoanDoc `build` or `start` scripts. Railway must set service Root Directory to `project1-loandoc`, otherwise deployment will fail at build/start discovery.
+- The target database must have pgvector available and `schema.sql` applied before first upload; the app requires `vector(1024)` and an HNSW vector index.
+
+#### Remedy Applied
+- Added `engines.node: >=20` to `project1-loandoc/package.json`.
+- Added Railway-specific setup instructions to `project1-loandoc/README.md` covering root directory, environment variables, commands, and schema prerequisites.
+- Synced package-lock metadata using `npm install --package-lock-only`.
+
+#### Residual Risk
+- `npm install` reports three high-severity transitive dependency advisories. They do not block the production build or Railway deployment; review upgrades separately before public exposure because forced remediation may introduce breaking changes.
+
+#### Verification
+- `npm run build` completed successfully, producing all expected API routes.
+
+### Project1 LoanDoc: Railway Subdirectory Deployment Fix
+
+#### Root Cause
+- Railway auto-detection at the repository root finds the unrelated Week 1 `package.json` instead of the nested `project1-loandoc` Next.js application.
+
+#### Remedy Applied
+- Added root-level `railway.toml` with explicit nested commands:
+  - build: `cd project1-loandoc && npm ci && npm run build`
+  - start: `cd project1-loandoc && npm run start`
+- Added a root health check (`/`), 300-second health-check timeout, and restart-on-failure policy.
+- Set `turbopack.root` to the LoanDoc directory in `project1-loandoc/next.config.ts` so sibling lockfiles do not cause incorrect workspace-root inference.
+- Updated the Railway README instructions: leave Railway Root Directory empty because `railway.toml` owns the path selection.
+
+#### Verification
+- Ran the exact configured nested install/build command from the repository root.
+- `npm ci && npm run build` completed successfully with no workspace-root inference warning.

@@ -1,0 +1,9 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd project1-loandoc && npm ci && npm run build"
+
+[deploy]
+startCommand = "cd project1-loandoc && npm run start"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"

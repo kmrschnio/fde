@@ -87,6 +87,34 @@ npm run dev        # http://localhost:3000
 
 Then open the app, upload a PDF, and ask it a question.
 
+## Railway deployment
+
+This repository contains multiple projects. The root-level `railway.toml`
+explicitly installs, builds, and starts `project1-loandoc`, so Railway can deploy
+the repository without relying on auto-detection. Keep the Railway service Root
+Directory empty; setting it to `project1-loandoc` would make the configured
+`cd project1-loandoc` commands point to the wrong path.
+
+Configure these environment variables in Railway:
+
+```text
+ANTHROPIC_API_KEY=...
+VOYAGE_API_KEY=...
+DATABASE_URL=postgresql://...
+```
+
+Railway supplies `PORT` automatically; `next start` reads it without a custom
+start command. Use the default build/start commands from `package.json`:
+
+```text
+Build: npm run build
+Start: npm run start
+```
+
+Apply `schema.sql` to the target Postgres database before the first upload. The
+database must support the `vector` extension because LoanDoc stores
+`vector(1024)` embeddings and creates an HNSW pgvector index.
+
 ## API
 
 ### `POST /api/upload`
