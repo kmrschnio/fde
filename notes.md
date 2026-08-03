@@ -790,3 +790,6 @@
 - After deploy, inspect Railway logs for `[rag] retrieval`:
   - `selectedChunkIds: []` means production is querying a document without stored chunks. Verify Railway `DATABASE_URL`, apply `schema.sql`, and upload the PDF in the production app.
   - non-empty IDs followed by `[rag] model reported insufficient context` means retrieval reached the model but the question/context requires prompt or retrieval tuning.
+
+#### Follow-up
+- A ready document confirms the upload route inserted chunks before marking the document ready. The UI now displays the model's own no-context explanation and the number of retrieved excerpts instead of hiding both behind one generic message.

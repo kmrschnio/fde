@@ -62,8 +62,11 @@ function AnswerPane({
               <p>
                 {result.noContextReason === 'no_indexed_chunks'
                   ? 'No indexed content was found for this document. Upload the PDF again and try once processing is complete.'
-                  : 'This document does not contain enough context to answer that question.'}
+                  : result.answer || 'The retrieved document excerpts do not support an answer to that question.'}
               </p>
+              {result.noContextReason === 'model_insufficient_context' ? (
+                <p>Retrieved {result.retrievedChunkCount} document excerpt{result.retrievedChunkCount === 1 ? '' : 's'}.</p>
+              ) : null}
             </div>
           ) : (
             <>

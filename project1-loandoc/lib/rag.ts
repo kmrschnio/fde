@@ -42,6 +42,7 @@ export interface AnswerResult {
   verified: boolean;
   confidence: number;
   lowConfidence: boolean;
+  retrievedChunkCount: number;
   noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context';
 }
 
@@ -384,6 +385,7 @@ export async function answer(question: string, documentId: number): Promise<Answ
       verified: true,
       confidence: 0,
       lowConfidence: true,
+      retrievedChunkCount: 0,
       noContextReason: 'no_indexed_chunks',
     };
   }
@@ -416,6 +418,7 @@ export async function answer(question: string, documentId: number): Promise<Answ
     verified: verification.valid,
     confidence,
     lowConfidence,
+    retrievedChunkCount: selected.length,
     noContextReason: generated.result.sufficient_context
       ? undefined
       : 'model_insufficient_context',
