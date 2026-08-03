@@ -111,6 +111,10 @@ Build: npm run build
 Start: npm run start
 ```
 
+The root `nixpacks.toml` pins Railway's build/runtime image to Node 20. Do not
+remove it: Next.js 16 requires Node 20.9+ and `pdf-parse` requires Node 20.16+
+or Node 22.3+.
+
 Apply `schema.sql` to the target Postgres database before the first upload. The
 database must support the `vector` extension because LoanDoc stores
 `vector(1024)` embeddings and creates an HNSW pgvector index.

@@ -753,3 +753,17 @@
 #### Verification
 - Ran the exact configured nested install/build command from the repository root.
 - `npm ci && npm run build` completed successfully with no workspace-root inference warning.
+
+### Project1 LoanDoc: Railway Node 18 Build Failure Fix
+
+#### Root Cause
+- Railway Nixpacks selected Node `18.20.5`, while Next.js 16 requires Node `20.9+` and `pdf-parse` requires Node `20.16+` or `22.3+`.
+- The nested app's Node engine constraint had been removed, allowing the unsupported fallback runtime.
+
+#### Remedy Applied
+- Added root `nixpacks.toml` with `nodejs_20` explicitly selected for Railway's Nixpacks setup phase.
+- Restored `engines.node: >=20.16.0` in `project1-loandoc/package.json`.
+- Documented the runtime requirement in the Railway README section.
+
+#### Verification
+- `package.json` parses successfully and editor diagnostics report no errors.
