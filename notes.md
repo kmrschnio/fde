@@ -767,3 +767,26 @@
 
 #### Verification
 - `package.json` parses successfully and editor diagnostics report no errors.
+
+### Project1 LoanDoc: Production No-Context Diagnostics
+
+#### Finding
+- The UI previously rendered the same generic no-context state for two distinct causes:
+  - no indexed chunks exist for the requested document ID
+  - the model judged retrieved chunks insufficient.
+- This obscured whether Railway production was connected to an empty/wrong database or whether a real document question lacked support.
+
+#### Remedy Applied
+- Added `noContextReason` to the RAG response contract:
+  - `no_indexed_chunks`
+  - `model_insufficient_context`
+- Added safe Railway server logs for each question containing only `documentId`, selected chunk IDs, and retrieval confidence; no document content, API keys, or secrets are logged.
+- Updated the UI to explicitly tell the user when a document has no indexed content and should be uploaded again.
+
+#### Verification
+- `npx tsc --noEmit` passes.
+
+#### Production Triage
+- After deploy, inspect Railway logs for `[rag] retrieval`:
+  - `selectedChunkIds: []` means production is querying a document without stored chunks. Verify Railway `DATABASE_URL`, apply `schema.sql`, and upload the PDF in the production app.
+  - non-empty IDs followed by `[rag] model reported insufficient context` means retrieval reached the model but the question/context requires prompt or retrieval tuning.

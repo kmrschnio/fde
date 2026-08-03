@@ -59,7 +59,11 @@ function AnswerPane({
         <div className="answer-result">
           {!result.sufficient_context ? (
             <div className="answer-empty">
-              <p>This document does not contain enough context to answer that question.</p>
+              <p>
+                {result.noContextReason === 'no_indexed_chunks'
+                  ? 'No indexed content was found for this document. Upload the PDF again and try once processing is complete.'
+                  : 'This document does not contain enough context to answer that question.'}
+              </p>
             </div>
           ) : (
             <>

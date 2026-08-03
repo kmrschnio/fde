@@ -11,6 +11,7 @@ export type Answer = {
   confidence: number;
   lowConfidence: boolean;
   sufficient_context: boolean;
+  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context';
 };
 
 export type DocumentChunk = {

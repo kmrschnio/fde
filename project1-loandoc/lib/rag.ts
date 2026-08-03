@@ -42,6 +42,7 @@ export interface AnswerResult {
   verified: boolean;
   confidence: number;
   lowConfidence: boolean;
+  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context';
 }
 
 interface RerankItem {
@@ -369,6 +370,12 @@ export async function generateCitedAnswer(
 export async function answer(question: string, documentId: number): Promise<AnswerResult> {
   const { selected, confidence } = await retrieveAndRank(question, documentId);
 
+  console.info('[rag] retrieval', {
+    documentId,
+    selectedChunkIds: selected.map((chunk) => chunk.id),
+    confidence,
+  });
+
   if (selected.length === 0) {
     return {
       answer: `No indexed chunks were found for document_id=${documentId}. Upload/process the document or use a valid document ID.`,
@@ -377,6 +384,7 @@ export async function answer(question: string, documentId: number): Promise<Answ
       verified: true,
       confidence: 0,
       lowConfidence: true,
+      noContextReason: 'no_indexed_chunks',
     };
   }
 
@@ -393,6 +401,14 @@ export async function answer(question: string, documentId: number): Promise<Answ
     chunks.map((chunk) => ({ id: chunk.id, content: chunk.content })),
   );
 
+  if (!generated.result.sufficient_context) {
+    console.warn('[rag] model reported insufficient context', {
+      documentId,
+      selectedChunkIds: selected.map((chunk) => chunk.id),
+      confidence,
+    });
+  }
+
   return {
     answer: generated.result.answer,
     sufficient_context: generated.result.sufficient_context,
@@ -400,5 +416,8 @@ export async function answer(question: string, documentId: number): Promise<Answ
     verified: verification.valid,
     confidence,
     lowConfidence,
+    noContextReason: generated.result.sufficient_context
+      ? undefined
+      : 'model_insufficient_context',
   };
 }
