@@ -793,3 +793,17 @@
 
 #### Follow-up
 - A ready document confirms the upload route inserted chunks before marking the document ready. The UI now displays the model's own no-context explanation and the number of retrieved excerpts instead of hiding both behind one generic message.
+
+### Project1 LoanDoc: Production Retrieval Root Cause
+
+#### Evidence
+- Production `GET /api/documents/2` returned a ready document with one stored chunk containing the exact Class A coupon (`5.95% fixed`).
+- Production `POST /api/ask` for that exact fact returned `no_indexed_chunks` and `retrievedChunkCount: 0`.
+
+#### Root Cause and Remedy
+- The global pgvector HNSW query applied `document_id` filtering after approximate nearest-neighbor selection. For a small document, all approximate candidates can belong to other documents and be discarded by the filter.
+- `search()` now materializes chunks for the requested document before vector ordering. This makes document-scoped retrieval exact and prevents global HNSW filtering from producing a false empty result.
+
+#### Verification
+- `npx tsc --noEmit` passes locally.
+- Verify after the Railway deployment with the same production ask request; it should return the Class A coupon with a citation.

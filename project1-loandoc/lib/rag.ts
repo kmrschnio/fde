@@ -260,10 +260,14 @@ export async function search(question: string, documentId: number, k = 3): Promi
 
   const vectorLiteral = `[${queryVector.join(',')}]`;
   const res = await pool.query(
-    `SELECT id, section, content,
+    `WITH document_chunks AS MATERIALIZED (
+       SELECT id, section, content, embedding
+       FROM chunks
+       WHERE document_id = $2
+     )
+     SELECT id, section, content,
             1 - (embedding <=> $1) AS similarity
-     FROM chunks
-     WHERE  document_id = $2
+     FROM document_chunks
      ORDER BY embedding <=> $1
      LIMIT $3`,
     [vectorLiteral, documentId, k],
