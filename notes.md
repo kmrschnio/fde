@@ -677,3 +677,43 @@
   - asked `What coupon do the Class A notes pay?`
   - received `5.95%` answer with confidence chip and verified chip
   - clicked cited source and confirmed exactly one source chunk was highlighted in place.
+
+### Project1 LoanDoc: Citation ID and Highlight Interaction Verification
+
+#### Finding
+- The document badge reports a per-document chunk count, while `chunks.id` is a global database identifier. A citation such as chunk `26` is therefore compatible with a document badge that says `2 chunks`.
+- Confirmed with the document API for a later Atlas upload (`document_id=6`): its two chunks are global IDs `26` and `27`.
+
+#### Verification
+- In the shared browser, the active earlier Atlas upload cited global chunk `24`.
+- Clicking source `24` in the Sources panel produced exactly one `.document-chunk--highlighted` element in the full left document pane, and its text contained the Atlas source context including the Class A row.
+- The click-to-highlight and scroll behavior is working; the pre-click view deliberately has no highlight because no source has been selected yet.
+
+### Project1 LoanDoc: PDF Footer-Only Chunk Cleanup
+
+#### Finding
+- The second Atlas chunk was present and rendered, but it contained only the PDF page marker `-- 1 of 1 --` directly below the meaningful document text. It looked like one continuous document because the pane intentionally renders chunks as flowing text without artificial chunk dividers.
+
+#### Remedy Applied
+- Updated `cleanPdfText(...)` in `project1-loandoc/lib/pdf.ts` to remove standalone `-- N of N --` page footer markers before structure-aware chunking.
+
+#### Verification
+- `npx tsc --noEmit` passes.
+- Fresh Atlas upload returned `document_id=7` and `chunks=1`, confirming the footer no longer becomes a separate indexed chunk.
+
+### Project1 LoanDoc: Cloud Database Schema
+
+#### Work Done
+- Added `project1-loandoc/schema.sql` as the portable database bootstrap for local Postgres and future Cloud SQL deployment.
+- Schema provisions:
+  - `vector` extension
+  - `documents` with processing lifecycle, chunk count, timestamps, and status constraints
+  - `chunks` with global IDs, document foreign key, content, section, and `vector(1024)` embedding
+  - document-scoped retrieval index (`document_id, id`)
+  - HNSW cosine vector index (`vector_cosine_ops`)
+  - automatic `updated_at` trigger for documents
+- Kept integer IDs and embedding dimension compatible with the current API and `voyage-3.5-lite` pipeline.
+
+#### Verification
+- Applied `schema.sql` idempotently against configured Postgres using the application `DATABASE_URL`.
+- Result: `schema.sql applied successfully`.

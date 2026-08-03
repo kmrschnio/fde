@@ -1,36 +1,165 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LoanDoc — Document intelligence for structured finance
 
-## Getting Started
+Upload a term sheet, servicing report, or prospectus and ask it questions. Every
+answer is grounded in the source document, cites the exact passage it came from,
+and carries a confidence signal — built for finance professionals who don't trust
+an answer they can't trace.
 
-First, run the development server:
+> **Live demo:** _[add your Cloud Run URL]_ · **Demo video:** _[add link]_
+
+![Architecture](docs/architecture.svg)
+
+---
+
+## Why this exists
+
+Generic document-QA tools answer confidently and hide their sources — a
+non-starter in regulated finance, where an unverifiable claim is worse than no
+answer. LoanDoc is built the other way around: retrieval quality is measured, every
+citation is checked verbatim against the source text before display, and the system
+refuses when the document doesn't contain the answer rather than inventing one.
+
+## What it does
+
+- **Upload any PDF** — parses messy real-world documents (two-column layouts,
+  running headers, tables, hyphenated line-wraps), cleans them, and indexes them.
+- **Ask in natural language** — retrieves the relevant passages, reranks them for
+  true relevance, and generates a grounded answer.
+- **Trace every claim** — each citation links to its source passage, which
+  highlights in the document pane on click.
+- **Know when to doubt** — a confidence score and a "verify against source" flag
+  surface when an answer is drawn from weak or scattered context.
+- **Refuse gracefully** — when the document doesn't cover the question, it says so
+  instead of hallucinating.
+
+## How it works
+
+A question flows through five stages (`lib/rag.ts`):
+
+1. **Retrieve** — vector search over pgvector returns 15 candidate passages.
+2. **Rerank** — a cross-encoder re-scores candidates by true relevance to the
+   question, producing sharp separation between answer and noise.
+3. **Threshold** — passages above a confidence floor are selected, but never fewer
+   than a minimum k, so multi-passage answers aren't starved.
+4. **Generate** — the model answers in structured JSON using only the selected
+   passages, emitting a verbatim quote for every claim.
+5. **Verify** — each quote is checked against its cited passage; failures trigger a
+   bounded repair loop. Verified answers carry a confidence score to the UI.
+
+Ingestion runs a parallel path: extract → clean → chunk (structure-aware) → embed →
+store, with each document isolated by `document_id` so retrieval never crosses
+documents.
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| App framework | Next.js (App Router, API routes) |
+| Language | TypeScript |
+| Vector store | Postgres + pgvector (HNSW index) |
+| Embeddings | Voyage `voyage-3.5-lite` |
+| Reranking | Voyage `rerank-2.5-lite` |
+| Generation | Anthropic Claude |
+| PDF parsing | pdf-parse + custom cleaning layer |
+| Deployment | Cloud Run + Cloud SQL, secrets in Secret Manager |
+
+## Quick start
+
+**Prerequisites:** Node 20+, Docker, a Voyage API key, an Anthropic API key.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Start Postgres + pgvector
+docker run -d --name loandoc-pg \
+  -e POSTGRES_PASSWORD=localdev -e POSTGRES_DB=loandoc \
+  -p 5432:5432 pgvector/pgvector:pg16
+
+# 2. Configure
+cp .env.example .env.local
+#   set ANTHROPIC_API_KEY, VOYAGE_API_KEY, DATABASE_URL
+
+# 3. Apply schema
+psql "$DATABASE_URL" -f schema.sql
+
+# 4. Run
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open the app, upload a PDF, and ask it a question.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### `POST /api/upload`
+Multipart form with a `file` field (PDF). Extracts, cleans, chunks, embeds, and
+stores the document.
 
-## Learn More
+```bash
+curl -X POST http://localhost:3000/api/upload -F "file=@term-sheet.pdf"
+# → { "document_id": 1, "chunks": 17 }
+```
 
-To learn more about Next.js, take a look at the following resources:
+### `POST /api/ask`
+```bash
+curl -X POST http://localhost:3000/api/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"What coupon do the Class A notes pay?","documentId":1}'
+```
+```json
+{
+  "answer": "The Class A notes pay a fixed coupon of 5.95%.",
+  "citations": [{ "chunk_id": 18, "quote": "...", "supports": "..." }],
+  "verified": true,
+  "confidence": 0.68,
+  "lowConfidence": false,
+  "sufficient_context": true
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `GET /api/document/[id]`
+Returns a document's chunks for rendering and citation highlighting.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Design decisions
 
-## Deploy on Vercel
+A few choices worth calling out, with their trade-offs:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Rerank over hybrid search.** Naive keyword search (Postgres full-text) added
+  little on this corpus and injected noise — its AND-semantics returned nothing for
+  natural-language questions, and OR-semantics matched common terms as strongly as
+  rare ones. A cross-encoder reranker gave sharp, thresholdable relevance scores
+  instead. Hybrid search becomes worthwhile at larger corpus sizes with a real BM25
+  engine; it wasn't worth the noise here.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Confidence floor with a minimum-k fallback.** A flat relevance threshold
+  cleanly handles single-fact questions but starves multi-passage answers — a key
+  passage can sit just below the floor. Selecting above-floor-but-never-fewer-than-k
+  passages handles both without a per-query rule.
+
+- **Normalized citation verification.** Strict verbatim matching is incompatible
+  with lossy PDF cleaning: dehyphenation and whitespace collapse introduce
+  byte-level drift that breaks exact matching even when the answer is correct.
+  Verification normalizes whitespace and case on both sides — trading a little
+  fabrication-detection strictness for robustness to real documents.
+
+- **The top reranker score as a whole-retrieval confidence gauge.** Simple factual
+  questions score high (~0.85); multi-hop questions where the answer is scattered
+  score notably lower (~0.56). That single number drives the UI's "verify against
+  source" flag — a signal a bi-encoder's cosine scores can't provide.
+
+## Project structure
+
+```
+app/
+  page.tsx                  UI shell — split-pane layout, state
+  components/               DocumentPane, AnswerPane
+  api/
+    upload/route.ts         ingestion pipeline
+    ask/route.ts            question-answering pipeline
+    document/[id]/route.ts  chunk fetch for rendering
+lib/
+  rag.ts                    retrieve → rerank → threshold → generate → verify
+  pdf.ts                    extraction + cleaning layer
+  chunk.ts                  structure-aware chunking
+  embed.ts                  Voyage embeddings
+  db.ts                     pg connection pool
+schema.sql
+```
