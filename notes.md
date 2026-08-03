@@ -807,3 +807,8 @@
 #### Verification
 - `npx tsc --noEmit` passes locally.
 - Verify after the Railway deployment with the same production ask request; it should return the Class A coupon with a citation.
+
+#### Follow-up: Reranker Empty-Result Fallback
+- Even with vector candidates present, `selected` could become empty if the reranker provider returned an empty result list. The old UI diagnostic therefore conflated an empty reranker response with missing indexed chunks.
+- `retrieveAndRank()` now falls back to the document-scoped vector candidates when reranking returns no valid rows, preserving grounded context for generation.
+- `npx tsc --noEmit` passes after the fallback change.

@@ -287,22 +287,24 @@ async function retrieveAndRank(question: string, documentId: number): Promise<{
 
   const topK = Math.min(CANDIDATES, candidates.length);
   const ranked = await rerank(question, candidates.map((candidate) => candidate.content), topK);
-  const scored = ranked.map((item) => ({
+  const reranked = ranked.map((item) => ({
     ...candidates[item.index],
     relevance: item.relevance_score,
-  }));
+  })).filter((candidate): candidate is RetrievedChunk & { relevance: number } => {
+    return candidate != null && typeof candidate.id === 'number' && typeof candidate.content === 'string';
+  });
+
+  // A provider can return no rerank rows for a valid request. Preserve vector
+  // retrieval rather than turning indexed document content into a false miss.
+  const scored = reranked.length > 0
+    ? reranked
+    : candidates.map((candidate) => ({ ...candidate, relevance: candidate.similarity ?? 0 }));
 
   const aboveFloor = scored.filter((candidate) => candidate.relevance >= FLOOR);
   const selected = aboveFloor.length >= MIN_K ? aboveFloor : scored.slice(0, MIN_K);
   const confidence = scored[0]?.relevance ?? 0;
 
-  const validSelected = selected.filter(
-    (candidate): candidate is RetrievedChunk & { relevance: number } => {
-      return candidate != null && typeof candidate.id === 'number' && typeof candidate.content === 'string';
-    },
-  );
-
-  return { selected: validSelected, confidence };
+  return { selected, confidence };
 }
 
 export function verifyCitations(
