@@ -6,6 +6,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS documents (
   id BIGSERIAL PRIMARY KEY,
   filename TEXT NOT NULL,
+  file_hash TEXT,
   status TEXT NOT NULL DEFAULT 'processing'
     CHECK (status IN ('processing', 'ready', 'failed')),
   chunk_count INTEGER NOT NULL DEFAULT 0
@@ -13,6 +14,13 @@ CREATE TABLE IF NOT EXISTS documents (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE documents
+  ADD COLUMN IF NOT EXISTS file_hash TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS documents_file_hash_unique_idx
+  ON documents (file_hash)
+  WHERE file_hash IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS chunks (
   id BIGSERIAL PRIMARY KEY,

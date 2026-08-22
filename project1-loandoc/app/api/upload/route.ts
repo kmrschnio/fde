@@ -1,6 +1,7 @@
 // app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFParse } from 'pdf-parse';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { cleanPdfText } from '@/lib/pdf';
 import { chunkStructure } from '@/lib/chunk';   // your Day-5 chunker
@@ -27,12 +28,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Upload a PDF file.' }, { status: 400 });
     }
 
-    // 1. create document row (status: processing)
-    const { rows: [doc] } = await pool.query(
-      'INSERT INTO documents (filename) VALUES ($1) RETURNING id', [file.name]);
+    const buf = Buffer.from(await file.arrayBuffer());
+    const fileHash = createHash('sha256').update(buf).digest('hex');
+
+    // 1. create a document row once per exact file content
+    const insertResult = await pool.query(
+      `INSERT INTO documents (filename, file_hash)
+       VALUES ($1, $2)
+       ON CONFLICT (file_hash) WHERE file_hash IS NOT NULL DO NOTHING
+       RETURNING id, chunk_count`,
+      [file.name, fileHash],
+    );
+
+    const doc = insertResult.rows[0];
+    if (!doc) {
+      const existingResult = await pool.query(
+        'SELECT id, chunk_count FROM documents WHERE file_hash = $1',
+        [fileHash],
+      );
+      const existing = existingResult.rows[0];
+
+      if (!existing) {
+        throw new Error('Duplicate upload could not be resolved.');
+      }
+
+      return NextResponse.json({ document_id: existing.id, chunks: existing.chunk_count, duplicate: true });
+    }
 
     // 2. extract -> clean -> chunk
-    const buf = Buffer.from(await file.arrayBuffer());
     const parser = new PDFParse({ data: buf });
     const textResult = await parser.getText();
     const raw = textResult.text;
@@ -58,7 +81,7 @@ export async function POST(req: NextRequest) {
     await pool.query('UPDATE documents SET status=$1, chunk_count=$2 WHERE id=$3',
       ['ready', chunks.length, doc.id]);
 
-    return NextResponse.json({ document_id: doc.id, chunks: chunks.length });
+    return NextResponse.json({ document_id: doc.id, chunks: chunks.length, duplicate: false });
   } catch (err) {
     console.error('[/api/upload]', err);
     return NextResponse.json({ error: 'Could not process that PDF. Try another file.' }, { status: 500 });

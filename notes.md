@@ -812,3 +812,51 @@
 - Even with vector candidates present, `selected` could become empty if the reranker provider returned an empty result list. The old UI diagnostic therefore conflated an empty reranker response with missing indexed chunks.
 - `retrieveAndRank()` now falls back to the document-scoped vector candidates when reranking returns no valid rows, preserving grounded context for generation.
 - `npx tsc --noEmit` passes after the fallback change.
+
+### Week 4 Day 1: Anthropic Authentication Error
+
+#### Cause and Remedy
+- `dotenv/config` reads `.env` from the process working directory. Running `npx tsx day1.ts` from `week-4` therefore did not load the repository-root `.env`, leaving `ANTHROPIC_API_KEY` unset.
+- Day 1 now resolves the root `.env` relative to its own module path and passes `ANTHROPIC_API_KEY` explicitly to the Anthropic client.
+
+#### Implemented Agent Loop
+- Uses Claude Haiku with a `calculate_headroom` tool that computes `threshold - current` in percentage points.
+- Preserves the complete assistant tool-use turn in `messages`, executes every requested tool call, and sends all `tool_result` blocks back as the next user turn.
+- Stops when Claude returns a non-`tool_use` stop reason, with a five-turn upper bound.
+
+#### Experiments and Verification
+- Single-tool question: Claude called `calculate_headroom(1.87, 3.25)` and returned `1.38` percentage points.
+- Multi-tool question: Claude made two tool calls in one turn, calculated `1.38` and `2.07` percentage points, and correctly identified delinquencies as having more headroom.
+- Direct-definition question: Claude answered "What is a securitization waterfall?" on turn zero without requesting a tool.
+- `TOOL_FAULT=1 npx tsx day1.ts`: tool calls return `{"error":"service unavailable"}`; the agent loop remains stable and Claude receives the structured failure response.
+
+### Week 4 Day 1: Document Tool Integration Errors
+
+#### Errors Resolved
+- Added document tools for listing ready documents, searching a selected document, and retrieving document metadata.
+- Replaced references to undefined `pool` and private `retrieveAndRank()` with the shared `pool` and exported `search()` helper.
+- Corrected the document timestamp query from nonexistent `uploaded_at` to `created_at`.
+- Awaited `runTool()` before assigning its value to an Anthropic `tool_result`; this fixes the `Promise<string>` type error.
+- Loaded `project1-loandoc/.env.local` before dynamically importing the shared DB/RAG modules. Static ESM imports execute before `dotenv.config()`, which previously initialized the PostgreSQL pool without `DATABASE_URL`.
+- Used NodeNext-compatible `.js` import specifiers for the dynamic TypeScript module imports.
+
+#### Verification
+- Editor diagnostics for `week-4/day1.ts`: no errors.
+- NodeNext type-check passes.
+- `npx tsx day1.ts` successfully listed local ready documents, searched their chunks, and completed a multi-turn document-supported answer citing chunk `20`.
+
+### LoanDoc: Duplicate Upload Prevention
+
+#### Problem
+- Local test uploads created duplicate `atlas_termsheet.pdf` document rows, which caused the Week 4 agent to search identical documents repeatedly.
+
+#### Remedy
+- Uploads now calculate a SHA-256 hash of the raw PDF bytes.
+- `documents.file_hash` has a unique partial index, and duplicate uploads return the existing document ID and chunk count without re-extracting, re-embedding, or inserting chunks.
+- The schema uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` so it can be applied to existing databases.
+
+#### Local Cleanup and Verification
+- Deleted the explicitly confirmed duplicate ready document IDs `5`, `6`, `7`, and `8` in one transaction, removing six associated chunks.
+- Kept canonical ready Atlas document `2`. A separate `processing` row `1` was not part of the requested duplicate cleanup and was left unchanged.
+- The unique-index conflict query was validated in a rolled-back transaction: the first insert returned one row and the duplicate insert returned zero rows.
+- `npm run build` passes for `project1-loandoc`.
