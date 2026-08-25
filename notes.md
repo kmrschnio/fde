@@ -860,3 +860,23 @@
 - Kept canonical ready Atlas document `2`. A separate `processing` row `1` was not part of the requested duplicate cleanup and was left unchanged.
 - The unique-index conflict query was validated in a rolled-back transaction: the first insert returned one row and the duplicate insert returned zero rows.
 - `npm run build` passes for `project1-loandoc`.
+
+### Workspace Working Map
+
+- Added `working-map.md` with a Mermaid graph covering implemented work in Weeks 1, 2, and 4, the currently empty Week 3, and Project 1 LoanDoc's ingestion and grounded-answering architecture.
+- Updated the Mermaid graph and root README to include Week 4 Day 3's LangGraph `ToolNode` and `MemorySaver` thread-checkpoint flow.
+
+### Week 4 Day 3: LangGraph Document Agent
+
+#### Errors Resolved
+- Added deterministic loading of the root `.env` and LoanDoc `.env.local` before dynamic imports of the shared database and RAG modules.
+- Replaced the undefined private `retrieveAndRank()` call with the exported document-scoped `search()` function.
+- Configured `ChatAnthropic` with a validated `ANTHROPIC_API_KEY`, resolving the missing-key runtime error and strict optional-key type error.
+
+#### Verification
+- Day 3 runs as a LangGraph model-to-tools loop and correctly identified Atlas Equipment Finance as having the highest Class A coupon at 5.95%, citing chunk `18`.
+
+#### MemorySaver Fix
+- The graph builder was compiled twice: once while creating `builder` and again with `MemorySaver`, causing `TypeError: builder.compile is not a function`.
+- Kept the graph uncompiled until `compile({ checkpointer })`, then invoked `main()` so the checkpoint test actually runs.
+- Verified that `conv-1` carries its document-listing conversation into the follow-up, while the separate `conv-2` invocation receives no persisted prior messages.

@@ -43,7 +43,7 @@ export interface AnswerResult {
   confidence: number;
   lowConfidence: boolean;
   retrievedChunkCount: number;
-  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context';
+  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context' | undefined;
 }
 
 interface RerankItem {

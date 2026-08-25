@@ -12,6 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.1",
+    "@langchain/anthropic": "^1.5.8",
+    "@langchain/core": "^1.2.9",
+    "@langchain/langgraph": "^1.4.12",
     "dotenv": "^17.4.2",
     "pg": "^8.22.0",
     "zod": "^4.4.3"

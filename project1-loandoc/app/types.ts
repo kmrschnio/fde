@@ -12,7 +12,7 @@ export type Answer = {
   lowConfidence: boolean;
   sufficient_context: boolean;
   retrievedChunkCount: number;
-  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context';
+  noContextReason?: 'no_indexed_chunks' | 'model_insufficient_context' | undefined;
 };
 
 export type DocumentChunk = {
